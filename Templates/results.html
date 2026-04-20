@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Results — TrojanGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg0:#080810;--bg1:#0f0f1a;--bg2:#15151f;--bg3:#1c1c28;
+  --b1:#252535;--b2:#2e2e42;
+  --acc:#7c5cfc;--acc2:#9d80ff;--red:#e8374a;--red2:#ff5566;
+  --grn:#22c55e;--grn2:#4ade80;--amb:#f59e0b;--blu:#38bdf8;
+  --t1:#f0f0f8;--t2:#9090b0;--t3:#505068;
+  --fn:'Space Grotesk',sans-serif;--fs:'Inter',sans-serif;--fm:'JetBrains Mono',monospace}
+body{font-family:var(--fs);background:var(--bg0);color:var(--t1);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(124,92,252,.04) 1px,transparent 1px);
+  background-size:32px 32px}
+nav{position:sticky;top:0;z-index:100;height:56px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 24px;
+  background:rgba(8,8,16,.96);border-bottom:1px solid var(--b1);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-ico{width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--acc),var(--red));
+  display:flex;align-items:center;justify-content:center;font-size:16px}
+.brand-name{font-family:var(--fn);font-size:15px;font-weight:700;color:var(--t1)}
+.brand-name span{color:var(--acc2)}
+.nav-links{display:flex;gap:2px}
+.nl{font-size:13px;font-weight:500;color:var(--t3);text-decoration:none;
+  padding:7px 14px;border-radius:8px;transition:all .15s}
+.nl:hover{color:var(--t2);background:var(--bg3)}
+.nl.on{color:var(--t1);background:var(--bg3)}
+.pill{display:flex;align-items:center;gap:7px;font-family:var(--fm);
+  font-size:11px;color:var(--t3);background:var(--bg2);
+  padding:5px 12px;border-radius:20px;border:1px solid var(--b1)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--grn);
+  box-shadow:0 0 6px var(--grn);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.page{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:36px 20px 80px}
+.back{font-family:var(--fm);font-size:12px;color:var(--t3);text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:16px;transition:color .15s}
+.back:hover{color:var(--acc2)}
+.pg-title{font-family:var(--fn);font-size:24px;font-weight:700;color:var(--t1);margin-bottom:3px}
+.pg-sub{font-size:13px;color:var(--t3);margin-bottom:22px}
+
+/* VERDICT BANNER */
+.verdict{border-radius:14px;padding:24px 28px;margin-bottom:22px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  animation:fadein .4s ease;position:relative;overflow:hidden}
+@keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.verdict.danger{background:rgba(232,55,74,.08);border:1px solid rgba(232,55,74,.32)}
+.verdict.safe{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.22)}
+.v-icon{font-size:34px;flex-shrink:0}
+.v-main{font-family:var(--fn);font-size:22px;font-weight:700;margin-bottom:4px}
+.verdict.danger .v-main{color:var(--red2)}
+.verdict.safe   .v-main{color:var(--grn2)}
+.v-sub{font-family:var(--fm);font-size:12px;color:var(--t3);letter-spacing:.3px}
+.v-conf{margin-left:auto;text-align:center;background:rgba(255,255,255,.04);
+  border-radius:10px;padding:10px 18px;border:1px solid var(--b2);flex-shrink:0}
+.vc-val{font-family:var(--fn);font-size:22px;font-weight:700;color:var(--t1)}
+.vc-lbl{font-family:var(--fm);font-size:10px;color:var(--t3);letter-spacing:1px;
+  text-transform:uppercase;margin-top:2px}
+
+/* TWO COL */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+
+/* CARD */
+.card{background:var(--bg1);border:1px solid var(--b1);border-radius:12px;padding:22px}
+.ctitle{font-family:var(--fn);font-size:13px;font-weight:600;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t2);margin-bottom:18px;
+  display:flex;align-items:center;gap:8px}
+
+/* INFO GRID */
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.ibox{background:var(--bg2);border:1px solid var(--b1);border-radius:9px;
+  padding:12px 14px;transition:border-color .15s}
+.ibox:hover{border-color:var(--b2)}
+.il{font-family:var(--fm);font-size:10px;font-weight:500;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+.iv{font-family:var(--fm);font-size:13px;font-weight:600;color:var(--t1);
+  word-break:break-all;line-height:1.3}
+.iv.ip{color:var(--acc2);font-size:14px}
+.iv.wifi{color:var(--grn2)}
+.iv.ext{color:var(--amb)}
+
+/* SUB LABEL */
+.sub{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--acc2);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sub::after{content:'';flex:1;height:1px;background:var(--b1)}
+
+/* PROB BARS */
+.pbar{margin-bottom:14px}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.pname{font-size:13px;font-weight:600;color:var(--t2)}
+.ppct{font-family:var(--fn);font-size:17px;font-weight:700;color:var(--t1)}
+.ptrack{background:var(--bg2);border-radius:4px;height:10px;
+  overflow:hidden;border:1px solid var(--b1)}
+.pfill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.pfill.t{background:linear-gradient(90deg,#5a0010,var(--red));box-shadow:0 0 8px rgba(232,55,74,.3)}
+.pfill.b{background:linear-gradient(90deg,#0a3a18,var(--grn));box-shadow:0 0 8px rgba(34,197,94,.25)}
+
+/* LIVE CHARTS */
+.crow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:4px 0}
+.cwrap{text-align:center}
+.cwrap canvas{border-radius:8px}
+.clbl{font-family:var(--fm);font-size:10px;color:var(--t3);
+  letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+
+/* ACTIONS */
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--fs);font-size:13px;font-weight:600;padding:10px 22px;
+  border-radius:9px;text-decoration:none;border:none;cursor:pointer;transition:all .2s}
+.btn-p{background:var(--acc);color:#fff;box-shadow:0 4px 18px rgba(124,92,252,.3)}
+.btn-p:hover{background:var(--acc2);transform:translateY(-1px)}
+.btn-o{background:transparent;color:var(--t2);border:1px solid var(--b2)}
+.btn-o:hover{color:var(--t1);border-color:var(--b2);background:var(--bg3)}
+
+@media(max-width:720px){.two{grid-template-columns:1fr};nav{padding:0 14px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="brand" href="/"><div class="brand-ico">🛡</div>
+    <div class="brand-name">Trojan<span>Guard</span></div></a>
+  <div class="nav-links">
+    <a href="/" class="nl">Home</a>
+    <a href="/scanner" class="nl on">Scanner</a>
+    <a href="/charts" class="nl">Charts</a>
+  </div>
+  <div class="pill"><span class="dot"></span>Scan Complete</div>
+</nav>
+
+<div class="page">
+  <a href="/scanner" class="back">← Back to Scanner</a>
+  <div class="pg-title">Scan Results</div>
+  <div class="pg-sub">{{ result.source_ip }} → {{ result.dest_ip }}</div>
+
+  <!-- VERDICT -->
+  <div class="verdict {{ result.verdict_class }}">
+    <div class="v-icon">{{ result.verdict_icon }}</div>
+    <div>
+      <div class="v-main">{{ result.verdict }}</div>
+      <div class="v-sub">{{ result.source_ip }} → {{ result.dest_ip }} · {{ result.connection }}</div>
+    </div>
+    <div class="v-conf">
+      <div class="vc-val">{{ result.confidence }}%</div>
+      <div class="vc-lbl">Confidence</div>
+    </div>
+  </div>
+
+  <div class="two">
+    <!-- LEFT — network details -->
+    <div class="card">
+      <div class="ctitle">🌐 Network Details</div>
+
+      <div class="sub">Identity</div>
+      <div class="igrid">
+        <div class="ibox"><div class="il">Flow ID</div><div class="iv">{{ result.flow_id }}</div></div>
+        <div class="ibox"><div class="il">Source IP</div><div class="iv ip">{{ result.source_ip }}</div></div>
+        <div class="ibox"><div class="il">Destination IP</div><div class="iv ip">{{ result.dest_ip }}</div></div>
+        <div class="ibox"><div class="il">Source Port</div><div class="iv">{{ result.source_port }}</div></div>
+        <div class="ibox"><div class="il">Dest Port</div><div class="iv">{{ result.dest_port }}</div></div>
+        <div class="ibox"><div class="il">Protocol</div><div class="iv">{{ result.protocol }}</div></div>
+        <div class="ibox"><div class="il">Timestamp</div><div class="iv">{{ result.timestamp }}</div></div>
+        <div class="ibox"><div class="il">Connection</div>
+          <div class="iv {{ 'wifi' if 'WiFi' in result.connection or 'LAN' in result.connection else 'ext' }}">{{ result.connection }}</div>
+        </div>
+      </div>
+
+      <div class="sub">Flow Statistics</div>
+      <div class="igrid">
+        <div class="ibox"><div class="il">Duration</div><div class="iv">{{ result.flow_duration }}</div></div>
+        <div class="ibox"><div class="il">Fwd Packets</div><div class="iv">{{ result.fwd_packets }}</div></div>
+        <div class="ibox"><div class="il">Bwd Packets</div><div class="iv">{{ result.bwd_packets }}</div></div>
+        <div class="ibox"><div class="il">Bytes/s</div><div class="iv">{{ result.flow_bytes_s }}</div></div>
+        <div class="ibox"><div class="il">Packets/s</div><div class="iv">{{ result.flow_pkts_s }}</div></div>
+        <div class="ibox"><div class="il">Fwd Length</div><div class="iv">{{ result.fwd_length }}</div></div>
+        <div class="ibox"><div class="il">Bwd Length</div><div class="iv">{{ result.bwd_length }}</div></div>
+        <div class="ibox"><div class="il">Avg Pkt Size</div><div class="iv">{{ result.avg_pkt_size }}</div></div>
+      </div>
+
+      <div class="sub">TCP Flags</div>
+      <div class="igrid">
+        <div class="ibox"><div class="il">SYN</div><div class="iv">{{ result.syn_flag }}</div></div>
+        <div class="ibox"><div class="il">ACK</div><div class="iv">{{ result.ack_flag }}</div></div>
+        <div class="ibox"><div class="il">RST</div><div class="iv">{{ result.rst_flag }}</div></div>
+        <div class="ibox"><div class="il">PSH</div><div class="iv">{{ result.psh_flag }}</div></div>
+        <div class="ibox"><div class="il">URG</div><div class="iv">{{ result.urg_flag }}</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT — charts + prob bars -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="card">
+        <div class="ctitle">📊 Live Probability Charts</div>
+        <div class="crow">
+          <div class="cwrap"><canvas id="donut" width="185" height="185"></canvas><div class="clbl">Donut</div></div>
+          <div class="cwrap"><canvas id="bars"  width="185" height="185"></canvas><div class="clbl">Bar Chart</div></div>
+          <div class="cwrap"><canvas id="gauge" width="185" height="110"></canvas><div class="clbl">Gauge</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">📈 Probability</div>
+        <div class="pbar">
+          <div class="ph"><span class="pname">🚨 Trojan</span><span class="ppct">{{ result.trojan_prob }}%</span></div>
+          <div class="ptrack"><div class="pfill t" id="tb" style="width:0%"></div></div>
+        </div>
+        <div class="pbar">
+          <div class="ph"><span class="pname">✅ Benign</span><span class="ppct">{{ result.benign_prob }}%</span></div>
+          <div class="ptrack"><div class="pfill b" id="bb" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="acts">
+    <a href="/scanner" class="btn btn-p">⚡ Scan Again</a>
+    <a href="/charts"  class="btn btn-o">📊 View Charts</a>
+    <a href="/"        class="btn btn-o">← Home</a>
+  </div>
+</div>
+
+<script>
+const TP  = {{ result.trojan_prob }};
+const BP  = {{ result.benign_prob }};
+const IST = {{ 'true' if result.is_trojan else 'false' }};
+const RED = '#e8374a', GRN = '#22c55e', ACC = '#7c5cfc';
+const BG  = '#15151f', DIM = '#252535', TXT = '#f0f0f8';
+
+setTimeout(()=>{
+  document.getElementById('tb').style.width = TP+'%';
+  document.getElementById('bb').style.width = BP+'%';
+}, 200);
+
+function drawDonut(cv,t,b,fr){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2;
+  const r=W*.37,tk=W*.13,ease=1-Math.pow(1-fr,3);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle=DIM;ctx.lineWidth=tk;ctx.stroke();
+  const tA=Math.PI*2*(t/100)*ease;
+  ctx.shadowBlur=12;ctx.shadowColor=RED;
+  ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+tA);
+  ctx.strokeStyle=RED;ctx.lineWidth=tk;ctx.stroke();
+  const bA=Math.PI*2*(b/100)*ease;
+  ctx.shadowBlur=12;ctx.shadowColor=GRN;
+  ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2+tA,-Math.PI/2+tA+bA);
+  ctx.strokeStyle=GRN;ctx.lineWidth=tk;ctx.stroke();
+  ctx.shadowBlur=0;
+  const mc=IST?RED:GRN;
+  ctx.fillStyle=mc;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`bold ${W*.12}px 'Space Grotesk',sans-serif`;
+  ctx.fillText((IST?t:b).toFixed(1)+'%',cx,cy-7);
+  ctx.fillStyle='#505068';ctx.font=`${W*.07}px 'JetBrains Mono',monospace`;
+  ctx.fillText(IST?'TROJAN':'BENIGN',cx,cy+12);
+}
+
+function drawBar(cv,t,b,fr){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  const pd=22,bw=(W-pd*3)/2,mh=H-50,ease=1-Math.pow(1-fr,3);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  [{v:t*ease,c:RED,x:pd,l:'TROJAN'},{v:b*ease,c:GRN,x:pd*2+bw,l:'BENIGN'}].forEach(({v,c,x,l})=>{
+    const bh=(v/100)*mh,by=H-34-bh;
+    ctx.fillStyle=c+'22';ctx.fillRect(x,H-34-mh,bw,mh);
+    ctx.shadowBlur=8;ctx.shadowColor=c;ctx.fillStyle=c;ctx.fillRect(x,by,bw,bh);ctx.shadowBlur=0;
+    ctx.fillStyle=TXT;ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.font=`bold ${W*.08}px 'JetBrains Mono',monospace`;ctx.fillText(v.toFixed(1)+'%',x+bw/2,by-3);
+    ctx.fillStyle='#505068';ctx.font=`${W*.064}px 'Space Grotesk',sans-serif`;
+    ctx.textBaseline='top';ctx.fillText(l,x+bw/2,H-30);
+  });
+}
+
+function drawGauge(cv,t,fr){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  const cx=W/2,cy=H-16,r=H*.7,tk=13,ease=1-Math.pow(1-fr,3);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,Math.PI*2);
+  ctx.strokeStyle=DIM;ctx.lineWidth=tk;ctx.stroke();
+  const col=t>60?RED:t>30?'#f59e0b':GRN;
+  const ang=Math.PI+(t/100)*Math.PI*ease;
+  ctx.shadowBlur=10;ctx.shadowColor=col;
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,ang);
+  ctx.strokeStyle=col;ctx.lineWidth=tk;ctx.stroke();ctx.shadowBlur=0;
+  const nx=cx+r*.72*Math.cos(ang),ny=cy+r*.72*Math.sin(ang);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(nx,ny);
+  ctx.strokeStyle=TXT;ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=TXT;ctx.fill();
+  ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.font=`bold ${W*.1}px 'Space Grotesk',sans-serif`;
+  ctx.fillText((t*ease).toFixed(1)+'%',cx,cy-12);
+  ctx.fillStyle='#505068';ctx.font=`${W*.075}px 'JetBrains Mono',monospace`;
+  ctx.fillText('THREAT',cx,cy-1);
+}
+
+const dc=document.getElementById('donut');
+const bc=document.getElementById('bars');
+const gc=document.getElementById('gauge');
+let fr=0;
+function animate(){
+  fr=Math.min(fr+1/55,1);
+  drawDonut(dc,TP,BP,fr);drawBar(bc,TP,BP,fr);drawGauge(gc,TP,fr);
+  if(fr<1)requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

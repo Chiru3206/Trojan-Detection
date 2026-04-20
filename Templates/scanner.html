@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scanner — TrojanGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg0:#080810;--bg1:#0f0f1a;--bg2:#15151f;--bg3:#1c1c28;
+  --b1:#252535;--b2:#2e2e42;
+  --acc:#7c5cfc;--acc2:#9d80ff;--red:#e8374a;--red2:#ff5566;
+  --grn:#22c55e;--grn2:#4ade80;--amb:#f59e0b;--blu:#38bdf8;
+  --t1:#f0f0f8;--t2:#9090b0;--t3:#505068;
+  --fn:'Space Grotesk',sans-serif;--fs:'Inter',sans-serif;--fm:'JetBrains Mono',monospace}
+body{font-family:var(--fs);background:var(--bg0);color:var(--t1);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(124,92,252,.04) 1px,transparent 1px);
+  background-size:32px 32px}
+nav{position:sticky;top:0;z-index:100;height:56px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 24px;
+  background:rgba(8,8,16,.96);border-bottom:1px solid var(--b1);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-ico{width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,var(--acc),var(--red));
+  display:flex;align-items:center;justify-content:center;font-size:16px}
+.brand-name{font-family:var(--fn);font-size:15px;font-weight:700;color:var(--t1)}
+.brand-name span{color:var(--acc2)}
+.nav-links{display:flex;gap:2px}
+.nl{font-size:13px;font-weight:500;color:var(--t3);text-decoration:none;
+  padding:7px 14px;border-radius:8px;transition:all .15s}
+.nl:hover{color:var(--t2);background:var(--bg3)}
+.nl.on{color:var(--t1);background:var(--bg3)}
+.pill{display:flex;align-items:center;gap:7px;font-family:var(--fm);
+  font-size:11px;color:var(--t3);background:var(--bg2);
+  padding:5px 12px;border-radius:20px;border:1px solid var(--b1)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--grn);
+  box-shadow:0 0 6px var(--grn);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.page{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:40px 20px 80px}
+.back{font-family:var(--fm);font-size:12px;color:var(--t3);text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:18px;transition:color .15s}
+.back:hover{color:var(--acc2)}
+.pg-title{font-family:var(--fn);font-size:26px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.pg-sub{font-size:14px;color:var(--t3);margin-bottom:28px}
+
+.card{background:var(--bg1);border:1px solid var(--b1);border-radius:14px;
+  padding:26px;position:relative;overflow:hidden;margin-bottom:0}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--acc),var(--amb),var(--acc));
+  background-size:200%;animation:sw 3s linear infinite}
+@keyframes sw{to{background-position:200% 0}}
+.ctitle{font-family:var(--fn);font-size:13px;font-weight:600;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t2);margin-bottom:18px;
+  display:flex;align-items:center;gap:8px}
+
+/* wifi banner */
+.wbanner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);
+  border-radius:10px;padding:13px 18px;margin-bottom:22px}
+.wlbl{font-size:13px;font-weight:500;color:var(--t2)}
+.wip{font-family:var(--fm);font-size:15px;font-weight:600;color:var(--grn2);
+  background:rgba(34,197,94,.08);padding:4px 12px;border-radius:6px;
+  border:1px solid rgba(34,197,94,.2);letter-spacing:.5px}
+.wbtn{margin-left:auto;font-size:13px;font-weight:600;cursor:pointer;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);
+  color:var(--grn2);border-radius:8px;padding:7px 16px;transition:background .15s}
+.wbtn:hover{background:rgba(34,197,94,.16)}
+
+/* fields */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.flbl{font-size:12px;font-weight:600;color:var(--t2);letter-spacing:.5px;
+  text-transform:uppercase;margin-bottom:8px;
+  display:flex;align-items:center;gap:7px}
+.flbl-bar{width:3px;height:14px;border-radius:2px;background:var(--acc)}
+.swrap{position:relative;margin-bottom:8px}
+.swrap select{width:100%;background:var(--bg2);border:1px solid var(--b2);
+  border-radius:9px;padding:11px 36px 11px 14px;font-family:var(--fm);
+  font-size:13px;color:var(--t2);outline:none;cursor:pointer;appearance:none;
+  transition:border-color .15s}
+.swrap select:focus{border-color:var(--acc)}
+.swrap select option{background:var(--bg0)}
+.sarr{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  color:var(--t3);pointer-events:none;font-size:10px}
+.or{display:flex;align-items:center;gap:8px;font-family:var(--fm);
+  font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--t3);margin-bottom:8px}
+.or::before,.or::after{content:'';flex:1;height:1px;background:var(--b1)}
+.ipf{width:100%;background:var(--bg2);border:1px dashed var(--b1);
+  border-radius:9px;padding:13px 15px;font-family:var(--fm);
+  font-size:16px;font-weight:500;color:var(--t1);outline:none;
+  transition:all .15s;letter-spacing:.5px}
+.ipf::placeholder{color:var(--t3);font-size:14px}
+.ipf:focus{border-style:solid;border-color:var(--acc);
+  box-shadow:0 0 0 3px rgba(124,92,252,.1);color:var(--acc2)}
+
+/* button */
+.sbtn{width:100%;padding:16px;font-family:var(--fn);font-size:18px;
+  font-weight:700;letter-spacing:1px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(90deg,var(--acc),#a855f7,var(--acc));
+  background-size:200%;color:#fff;
+  box-shadow:0 4px 24px rgba(124,92,252,.35);
+  transition:background-position .4s,transform .15s,box-shadow .2s}
+.sbtn:hover{background-position:100%;transform:translateY(-2px);
+  box-shadow:0 8px 36px rgba(124,92,252,.5)}
+.sbtn:active{transform:scale(.99)}
+.sbtn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* error */
+.err{background:rgba(232,55,74,.07);border:1px solid rgba(232,55,74,.28);
+  border-radius:9px;padding:13px 16px;font-family:var(--fm);
+  font-size:13px;color:var(--red2);margin-top:14px;display:flex;align-items:center;gap:8px}
+
+/* spinner overlay */
+.ov{display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(8,8,16,.8);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.ov.show{display:flex}
+.ring{width:48px;height:48px;border:3px solid var(--b2);
+  border-top-color:var(--acc);border-right-color:var(--red);
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rtxt{font-family:var(--fm);font-size:12px;font-weight:500;
+  color:var(--t2);letter-spacing:2px}
+
+@media(max-width:600px){.frow{grid-template-columns:1fr};nav{padding:0 14px}}
+</style>
+</head>
+<body>
+<div class="ov" id="ov"><div class="ring"></div><div class="rtxt">SCANNING...</div></div>
+
+<nav>
+  <a class="brand" href="/"><div class="brand-ico">🛡</div>
+    <div class="brand-name">Trojan<span>Guard</span></div></a>
+  <div class="nav-links">
+    <a href="/" class="nl">Home</a>
+    <a href="/scanner" class="nl on">Scanner</a>
+    <a href="/charts" class="nl">Charts</a>
+  </div>
+  <div class="pill"><span class="dot"></span>ML Online</div>
+</nav>
+
+<div class="page">
+  <a href="/" class="back">← Home</a>
+  <div class="pg-title">Network Scanner</div>
+  <div class="pg-sub">Enter IP addresses to detect Trojan threats in real-time</div>
+
+  <div class="card">
+    <div class="ctitle">📶 Your Network</div>
+
+    <div class="wbanner">
+      <span class="wlbl">Detected WiFi IP</span>
+      <span class="wip">{{ wifi_ip }}</span>
+      <button class="wbtn" type="button" onclick="useWifi()">Use as Source</button>
+    </div>
+
+    <form method="POST" action="/scan" onsubmit="go(event)">
+      <div class="frow">
+        <div>
+          <div class="flbl"><span class="flbl-bar"></span>Source IP</div>
+          <div class="swrap">
+            <select id="ss" onchange="if(this.value)document.getElementById('si').value=this.value">
+              <option value="">— Select default source IP —</option>
+              {% for ip,lbl in src_ips %}
+              <option value="{{ ip }}">{{ lbl }}</option>
+              {% endfor %}
+            </select>
+            <span class="sarr">▾</span>
+          </div>
+          <div class="or">or type manually</div>
+          <input class="ipf" id="si" name="source_ip" type="text"
+                 placeholder="e.g. {{ wifi_ip }}" value="{{ wifi_ip }}"
+                 autocomplete="off" oninput="document.getElementById('ss').selectedIndex=0">
+        </div>
+        <div>
+          <div class="flbl"><span class="flbl-bar"></span>Destination IP</div>
+          <div class="swrap">
+            <select id="ds" onchange="if(this.value)document.getElementById('di').value=this.value">
+              <option value="">— Select default destination IP —</option>
+              {% for ip,lbl in dst_ips %}
+              <option value="{{ ip }}">{{ lbl }}</option>
+              {% endfor %}
+            </select>
+            <span class="sarr">▾</span>
+          </div>
+          <div class="or">or type manually</div>
+          <input class="ipf" id="di" name="dest_ip" type="text"
+                 placeholder="e.g. 8.8.8.8" autocomplete="off"
+                 oninput="document.getElementById('ds').selectedIndex=0">
+        </div>
+      </div>
+
+      <button class="sbtn" type="submit" id="sb">⚡ &nbsp;Scan &amp; Analyse Traffic</button>
+
+      {% if error %}
+      <div class="err">⚠ &nbsp;{{ error }}</div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<script>
+const wifi="{{wifi_ip}}";
+function useWifi(){document.getElementById('si').value=wifi;document.getElementById('ss').selectedIndex=0}
+function go(e){
+  const s=document.getElementById('si').value.trim();
+  const d=document.getElementById('di').value.trim();
+  if(s&&d){document.getElementById('sb').disabled=true;document.getElementById('ov').classList.add('show')}
+}
+</script>
+</body>
+</html>
