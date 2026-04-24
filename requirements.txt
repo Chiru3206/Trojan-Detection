@@ -2,3 +2,8 @@ pandas
 numpy
 scikit-learn
 matplotlib
+xgboost
+transformers
+torch
+accelerate
+seaborn
