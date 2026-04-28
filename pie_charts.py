@@ -15,6 +15,8 @@ import os
 import warnings
 warnings.filterwarnings('ignore')
 
+THRESHOLD = 80.0
+
 # ── Theme ─────────────────────────────────────────────────────
 BG      = '#0a0f14'
 ORANGE  = '#ff6a00'
@@ -171,6 +173,7 @@ fig, ax = plt.subplots(figsize=(9, 8))
 fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
 
 metric_labels = ['ACCURACY', 'PRECISION', 'RECALL', 'F1-SCORE', 'ROC-AUC']
+metric_keys   = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
 metric_vals   = [
     metrics.get('accuracy',   95.5),
     metrics.get('precision',  94.8),
@@ -178,7 +181,14 @@ metric_vals   = [
     metrics.get('f1',         95.4),
     metrics.get('roc_auc',    98.2),
 ]
-ring_colors = [ORANGE, BLUE, TEAL, AMBER, PURPLE]
+ring_colors = []
+for key, label in zip(metric_keys, metric_labels):
+    if key == 'accuracy':
+        ring_colors.append(ORANGE)
+    elif metrics.get(key, 0) >= THRESHOLD:
+        ring_colors.append(TEAL)
+    else:
+        ring_colors.append(RED)
 
 wedges3, texts3, autos3 = ax.pie(
     metric_vals,
@@ -197,6 +207,29 @@ ax.text(0, 0.06, 'MODEL', ha='center', va='center',
         fontsize=13, fontweight='bold', color=ORANGE, fontfamily=MONO)
 ax.text(0,-0.12, 'METRICS', ha='center', va='center',
         fontsize=11, color=DIM, fontfamily=MONO)
+
+all_models = metrics.get('all_models', {})
+if all_models:
+    accuracy_lines = []
+    for model_name in ['Random Forest', 'KNN', 'CNN']:
+        model_data = all_models.get(model_name)
+        if not model_data:
+            continue
+        acc = model_data.get('accuracy', 0)
+        status = '✓' if acc >= THRESHOLD else '✗'
+        accuracy_lines.append(f"{model_name}: {acc:.2f}% {status}")
+    if accuracy_lines:
+        ax.text(0, -0.28, '  |  '.join(accuracy_lines),
+                ha='center', va='center', fontsize=9,
+                color=WHITE, fontfamily=MONO)
+else:
+    best_name = metrics.get('best_model', 'Unknown')
+    best_accuracy = metrics.get('accuracy', 0)
+    status = '✓' if best_accuracy >= THRESHOLD else '✗'
+    ax.text(0, -0.28,
+            f'Best model: {best_name} ({best_accuracy:.2f}% {status})',
+            ha='center', va='center', fontsize=10,
+            color=WHITE, fontfamily=MONO)
 
 ax.set_title('MODEL PERFORMANCE METRICS RING', fontsize=15, color=ORANGE,
              fontfamily=MONO, pad=20, fontweight='bold')

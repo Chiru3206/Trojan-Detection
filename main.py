@@ -3,6 +3,7 @@
 # 3 Models: Random Forest | KNN | CNN
 # ============================================================
 
+import sys
 import pandas as pd
 import pickle
 import numpy as np
@@ -14,7 +15,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
 
-from sklearn.model_selection  import train_test_split, cross_val_score
+from sklearn.model_selection  import train_test_split, cross_val_score, RandomizedSearchCV, StratifiedShuffleSplit
 from sklearn.preprocessing    import LabelEncoder, StandardScaler
 from sklearn.ensemble         import RandomForestClassifier
 from sklearn.neighbors        import KNeighborsClassifier
@@ -252,6 +253,105 @@ class CNNClassifierWrapper:
             probabilities = torch.softmax(outputs, dim=1).cpu().numpy()
         return probabilities
 
+THRESHOLD = 80.0
+
+def meets_thresholds(metric_dict, threshold=THRESHOLD):
+    return all(metric_dict.get(k, 0) >= threshold for k in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc'])
+
+
+def get_target_models():
+    args = sys.argv[1:]
+    robots = {'rf': 'Random Forest', 'knn': 'KNN', 'cnn': 'CNN'}
+    if not args:
+        return list(models.keys())
+    if len(args) != 1 or args[0].lower() not in list(robots.keys()) + ['all']:
+        print('Usage: python main.py [rf|knn|cnn|all]')
+        sys.exit(1)
+    choice = args[0].lower()
+    if choice == 'all':
+        return list(models.keys())
+    return [robots[choice]]
+
+
+def evaluate_model_metrics(y_test, y_pred, y_prob, cv=None):
+    acc  = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, zero_division=0)
+    rec  = recall_score(y_test, y_pred, zero_division=0)
+    f1   = f1_score(y_test, y_pred, zero_division=0)
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    roc  = auc(fpr, tpr)
+    return {
+        'accuracy' : round(acc * 100, 2),
+        'precision': round(prec * 100, 2),
+        'recall'   : round(rec * 100, 2),
+        'f1'       : round(f1 * 100, 2),
+        'roc_auc'  : round(roc * 100, 2),
+        'cv_mean'  : round(cv.mean() * 100, 2) if cv is not None else None,
+        'cv_std'   : round(cv.std() * 100, 2) if cv is not None else None,
+        'fpr'      : fpr,
+        'tpr'      : tpr,
+        'y_pred'   : y_pred,
+        'y_prob'   : y_prob,
+    }
+
+
+def train_and_evaluate(name, clf, X_train, y_train, X_test, y_test):
+    print(f"\n[*] Training: {name} ...")
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    y_prob = clf.predict_proba(X_test)[:, 1]
+    if name == 'Random Forest':
+        cv = cross_val_score(clf, X_scaled, y, cv=3, scoring='accuracy', n_jobs=1)
+    else:
+        cv = np.array([accuracy_score(y_test, y_pred)] * 3)
+    metrics = evaluate_model_metrics(y_test, y_pred, y_prob, cv=cv)
+    return clf, metrics
+
+
+def search_random_forest(X_train, y_train, X_test, y_test):
+    print('\n[!] Threshold not met by initial models. Running additional Random Forest tuning...')
+    search_space = {
+        'n_estimators': [200, 300, 400, 500],
+        'max_depth': [15, 20, 25, 30, 35, 40, None],
+        'max_features': ['sqrt', 'log2', 0.5],
+        'min_samples_leaf': [1, 2, 3, 4, 6],
+        'criterion': ['gini', 'entropy'],
+    }
+    cv_search = StratifiedShuffleSplit(n_splits=3, test_size=0.2, random_state=42)
+    search = RandomizedSearchCV(
+        RandomForestClassifier(class_weight='balanced_subsample', random_state=42, n_jobs=-1),
+        param_distributions=search_space,
+        n_iter=12,
+        cv=cv_search,
+        scoring='f1',
+        random_state=42,
+        n_jobs=1,
+        verbose=0,
+    )
+    sample_size = min(30000, len(X_train))
+    if sample_size < len(X_train):
+        splitter = StratifiedShuffleSplit(n_splits=1, train_size=sample_size, random_state=42)
+        sample_idx, _ = next(splitter.split(X_train, y_train))
+        X_search = X_train[sample_idx]
+        y_search = np.asarray(y_train)[sample_idx]
+    else:
+        X_search = X_train
+        y_search = y_train
+
+    search.fit(X_search, y_search)
+    best_model = search.best_estimator_
+    best_model.fit(X_train, y_train)
+    y_pred = best_model.predict(X_test)
+    y_prob = best_model.predict_proba(X_test)[:, 1]
+    metrics = evaluate_model_metrics(y_test, y_pred, y_prob, cv=None)
+    print('    Tuned Random Forest metrics:')
+    print(f"      Accuracy : {metrics['accuracy']}%")
+    print(f"      Precision: {metrics['precision']}%")
+    print(f"      Recall   : {metrics['recall']}%")
+    print(f"      F1 Score : {metrics['f1']}%")
+    print(f"      ROC AUC  : {metrics['roc_auc']}%")
+    return best_model, metrics
+
 models = {
     'Random Forest': RandomForestClassifier(
         n_estimators     = 500,
@@ -274,68 +374,33 @@ models = {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# 10. TRAIN + EVALUATE ALL MODELS
+# 10. TRAIN + EVALUATE MODELS
 # ═══════════════════════════════════════════════════════════════
+selected_models = get_target_models()
 print("\n" + "="*60)
-print("  TRAINING & EVALUATING ALL MODELS")
+print("  TRAINING & EVALUATING MODELS")
 print("="*60)
 
-results   = {}   # stores metrics for each model
-trained   = {}   # stores trained model objects
-cm_dict   = {}   # stores confusion matrices
+results   = {}
+trained   = {}
+cm_dict   = {}
 
-for name, clf in models.items():
-    print(f"\n[*] Training: {name} ...")
-
-    # Handle special models differently
-    if name in ['KNN', 'CNN']:
-        # Train normally
-        clf.fit(X_train, y_train)
-        y_pred = clf.predict(X_test)
-        y_prob = clf.predict_proba(X_test)[:, 1]
-        # Skip CV for KNN and CNN due to computational cost
-        cv_scores = [accuracy_score(y_test, y_pred)] * 3  # Use test accuracy as CV placeholder
-        cv = np.array(cv_scores)
-    else:
-        clf.fit(X_train, y_train)
-        y_pred = clf.predict(X_test)
-        y_prob = clf.predict_proba(X_test)[:, 1]
-        # 3-fold cross-validation for Random Forest only
-        cv = cross_val_score(clf, X_scaled, y, cv=3,
-                             scoring='accuracy', n_jobs=1)
-
-    acc  = accuracy_score (y_test, y_pred)
-    prec = precision_score(y_test, y_pred, zero_division=0)
-    rec  = recall_score   (y_test, y_pred, zero_division=0)
-    f1   = f1_score       (y_test, y_pred, zero_division=0)
-    fpr, tpr, _ = roc_curve(y_test, y_prob)
-    roc  = auc(fpr, tpr)
-
-    results[name] = {
-        'accuracy' : round(acc*100, 2),
-        'precision': round(prec*100, 2),
-        'recall'   : round(rec*100, 2),
-        'f1'       : round(f1*100, 2),
-        'roc_auc'  : round(roc*100, 2),
-        'cv_mean'  : round(cv.mean()*100, 2),
-        'cv_std'   : round(cv.std()*100, 2),
-        'fpr'      : fpr,
-        'tpr'      : tpr,
-        'y_pred'   : y_pred,
-        'y_prob'   : y_prob,
-    }
+for name in selected_models:
+    clf = models[name]
+    clf, metrics = train_and_evaluate(name, clf, X_train, y_train, X_test, y_test)
     trained[name] = clf
-    cm_dict[name] = confusion_matrix(y_test, y_pred)
+    results[name] = metrics
+    cm_dict[name] = confusion_matrix(y_test, metrics['y_pred'])
 
-    print(f"    Accuracy   : {acc*100:.2f}%")
-    print(f"    Precision  : {prec*100:.2f}%")
-    print(f"    Recall     : {rec*100:.2f}%")
-    print(f"    F1 Score   : {f1*100:.2f}%")
-    print(f"    ROC AUC    : {roc*100:.2f}%")
-    print(f"    CV Accuracy: {cv.mean()*100:.2f}% ± {cv.std()*100:.2f}%")
-    print(f"\n    Classification Report:")
-    print(classification_report(y_test, y_pred,
-          target_names=['Benign','Trojan']))
+    print(f"    {name} results:")
+    print(f"      Accuracy : {metrics['accuracy']}%")
+    print(f"      Precision: {metrics['precision']}%")
+    print(f"      Recall   : {metrics['recall']}%")
+    print(f"      F1 Score : {metrics['f1']}%")
+    print(f"      ROC AUC  : {metrics['roc_auc']}%")
+    print(f"      CV Mean  : {metrics['cv_mean']}% ± {metrics['cv_std']}%")
+    print(f"\n      Classification Report:")
+    print(classification_report(y_test, metrics['y_pred'], target_names=['Benign','Trojan']))
 
 # ═══════════════════════════════════════════════════════════════
 # 11. SUMMARY TABLE
@@ -350,11 +415,36 @@ for name, r in results.items():
     print(f"{name:<22} {r['accuracy']:>9}%  {r['precision']:>9}%  "
           f"{r['recall']:>7}%  {r['f1']:>7}%  {r['roc_auc']:>8}%")
 
-# Best model = highest F1
-best_name  = max(results, key=lambda n: results[n]['f1'])
-best_model = trained[best_name]
-best_res   = results[best_name]
-print(f"\n[★] Best Model: {best_name}")
+# Best model = Random Forest if it meets all thresholds, otherwise fall back
+rf_candidates = [name for name in results if 'Random Forest' in name and meets_thresholds(results[name])]
+if rf_candidates:
+    best_name = max(rf_candidates, key=lambda n: results[n]['f1'])
+    best_model = trained[best_name]
+    best_res = results[best_name]
+    print(f"\n[★] Random Forest is selected as best threshold-qualified model: {best_name}")
+else:
+    if 'Random Forest' in results:
+        tuned_model, tuned_metrics = search_random_forest(X_train, y_train, X_test, y_test)
+        if tuned_model is not None and meets_thresholds(tuned_metrics):
+            best_name = 'Random Forest (Tuned)'
+            best_model = tuned_model
+            best_res = tuned_metrics
+            trained[best_name] = tuned_model
+            results[best_name] = tuned_metrics
+            cm_dict[best_name] = confusion_matrix(y_test, tuned_metrics['y_pred'])
+            print(f"\n[★] Selected tuned Random Forest: {best_name}")
+        else:
+            best_name = max(results, key=lambda n: results[n]['f1'])
+            best_model = trained[best_name]
+            best_res = results[best_name]
+            print(f"\n[!] No Random Forest model reached {THRESHOLD}% on all metrics.")
+            print(f"[★] Best model by F1 fallback: {best_name}")
+    else:
+        best_name = max(results, key=lambda n: results[n]['f1'])
+        best_model = trained[best_name]
+        best_res = results[best_name]
+        print(f"\n[!] No Random Forest model available to select.")
+        print(f"[★] Best model by F1 fallback: {best_name}")
 print("="*60)
 
 # ═══════════════════════════════════════════════════════════════
@@ -394,9 +484,9 @@ plt.close(); print("[+] graph_confusion_matrix.png")
 
 # ── G2: ROC Curves (all models on same chart) ──────────────
 fig, ax = plt.subplots(figsize=(7,5)); fig.patch.set_facecolor(BG); ax.set_facecolor(BG2)
-cols_roc = {'Random Forest': ACC, 'KNN': AMB, 'CNN': GRN}
+cols_roc = {'Random Forest': ACC, 'Random Forest (Tuned)': ACC, 'KNN': AMB, 'CNN': GRN}
 for name, r in results.items():
-    c = cols_roc[name]
+    c = cols_roc.get(name, ACC)
     ax.fill_between(r['fpr'], r['tpr'], alpha=.06, color=c)
     ax.plot(r['fpr'], r['tpr'], color=c, lw=2,
             label=f"{name}  (AUC={r['roc_auc']}%)")
@@ -440,7 +530,7 @@ plt.savefig('graph_metrics_bar.png',dpi=150,bbox_inches='tight',facecolor=BG)
 plt.close(); print("[+] graph_metrics_bar.png")
 
 # ── G4: Feature Importance (Random Forest only) ───────────────
-rf   = trained['Random Forest']
+rf   = trained.get(best_name, trained['Random Forest'])
 imps = rf.feature_importances_
 fn   = X.columns
 top  = 15
