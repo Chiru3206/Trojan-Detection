@@ -1,6 +1,6 @@
 # ============================================================
 # Trojan Detection System — main.py
-# 3 Models: Random Forest | KNN | CNN
+# 3 Models: Random Forest | KNN | XGBoost
 # ============================================================
 
 import sys
@@ -19,10 +19,7 @@ from sklearn.model_selection  import train_test_split, cross_val_score, Randomiz
 from sklearn.preprocessing    import LabelEncoder, StandardScaler
 from sklearn.ensemble         import RandomForestClassifier
 from sklearn.neighbors        import KNeighborsClassifier
-import torch
-import torch.nn as nn
-from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
+from xgboost import XGBClassifier
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     classification_report, confusion_matrix,
@@ -169,9 +166,9 @@ X_scaled = scaler.fit_transform(X)
 print(f"[+] Scaled data: {X_scaled.nbytes / 1024**2:.2f} MB")
 
 # ═══════════════════════════════════════════════════════════════
-# 7.5. PREPARE TEXT DATA (SKIPPED - CNN uses numeric features)
-# ═══════════════════════════════════════════════════════════════
-print(f"[+] Using numeric features directly for CNN training")
+# 7.5. PREPARE TEXT DATA (SKIPPED - XGBoost uses numeric features)
+# ═══════════════════════════════════════════════════════════════════════
+print(f"[+] Using numeric features directly for XGBoost training")
 
 # ═══════════════════════════════════════════════════════════════
 # 8. TRAIN / TEST SPLIT  (80 % train — 20 % test, stratified)
@@ -182,76 +179,8 @@ print(f"\n[+] Training samples : {len(X_train):,} ({X_train.nbytes / 1024**2:.2f
 print(f"[+] Testing  samples : {len(X_test):,} ({X_test.nbytes / 1024**2:.2f} MB)")
 
 # ═══════════════════════════════════════════════════════════════
-# 9. DEFINE 3 MODELS
+# 9. DEFINE MODELS
 # ═══════════════════════════════════════════════════════════════
-
-# CNN Model for feature classification
-class CNNClassifier(nn.Module):
-    def __init__(self, input_dim=87):
-        super(CNNClassifier, self).__init__()
-        self.conv1 = nn.Conv1d(1, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool1d(2)
-        self.fc1 = nn.Linear(128 * (input_dim // 4), 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 2)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.3)
-
-    def forward(self, x):
-        x = self.pool(self.relu(self.conv1(x)))
-        x = self.pool(self.relu(self.conv2(x)))
-        x = x.view(x.size(0), -1)
-        x = self.dropout(self.relu(self.fc1(x)))
-        x = self.dropout(self.relu(self.fc2(x)))
-        x = self.fc3(x)
-        return x
-
-# CNN wrapper for sklearn-like interface
-class CNNClassifierWrapper:
-    def __init__(self, input_dim=87, epochs=20, batch_size=32):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = CNNClassifier(input_dim=input_dim).to(self.device)
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.optimizer = Adam(self.model.parameters(), lr=0.001)
-        self.criterion = nn.CrossEntropyLoss()
-
-    def fit(self, X, y):
-        X_tensor = torch.FloatTensor(X.values if hasattr(X, 'values') else X)
-        y_tensor = torch.LongTensor(y.values if hasattr(y, 'values') else y)
-        
-        # Reshape for CNN: (batch_size, channels=1, features)
-        X_tensor = X_tensor.unsqueeze(1)
-        dataset = TensorDataset(X_tensor, y_tensor)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        
-        self.model.train()
-        for epoch in range(self.epochs):
-            for batch_x, batch_y in dataloader:
-                batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                
-                self.optimizer.zero_grad()
-                outputs = self.model(batch_x)
-                loss = self.criterion(outputs, batch_y)
-                loss.backward()
-                self.optimizer.step()
-
-    def predict(self, X):
-        X_tensor = torch.FloatTensor(X.values if hasattr(X, 'values') else X).unsqueeze(1).to(self.device)
-        self.model.eval()
-        with torch.no_grad():
-            outputs = self.model(X_tensor)
-            predictions = torch.argmax(outputs, dim=1).cpu().numpy()
-        return predictions
-
-    def predict_proba(self, X):
-        X_tensor = torch.FloatTensor(X.values if hasattr(X, 'values') else X).unsqueeze(1).to(self.device)
-        self.model.eval()
-        with torch.no_grad():
-            outputs = self.model(X_tensor)
-            probabilities = torch.softmax(outputs, dim=1).cpu().numpy()
-        return probabilities
 
 THRESHOLD = 80.0
 
@@ -261,11 +190,11 @@ def meets_thresholds(metric_dict, threshold=THRESHOLD):
 
 def get_target_models():
     args = sys.argv[1:]
-    robots = {'rf': 'Random Forest', 'knn': 'KNN', 'cnn': 'CNN'}
+    robots = {'rf': 'Random Forest', 'knn': 'KNN', 'xgb': 'XGBoost'}
     if not args:
         return list(models.keys())
     if len(args) != 1 or args[0].lower() not in list(robots.keys()) + ['all']:
-        print('Usage: python main.py [rf|knn|cnn|all]')
+        print('Usage: python main.py [rf|knn|xgb|all]')
         sys.exit(1)
     choice = args[0].lower()
     if choice == 'all':
@@ -370,7 +299,17 @@ models = {
         leaf_size         = 30,
         n_jobs            = 1,
     ),
-    'CNN': CNNClassifierWrapper(input_dim=X_train.shape[1], epochs=50, batch_size=32),
+    'XGBoost': XGBClassifier(
+        use_label_encoder=False,
+        eval_metric='logloss',
+        n_estimators=300,
+        learning_rate=0.1,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        n_jobs=-1,
+    ),
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -484,7 +423,7 @@ plt.close(); print("[+] graph_confusion_matrix.png")
 
 # ── G2: ROC Curves (all models on same chart) ──────────────
 fig, ax = plt.subplots(figsize=(7,5)); fig.patch.set_facecolor(BG); ax.set_facecolor(BG2)
-cols_roc = {'Random Forest': ACC, 'Random Forest (Tuned)': ACC, 'KNN': AMB, 'CNN': GRN}
+cols_roc = {'Random Forest': ACC, 'Random Forest (Tuned)': ACC, 'KNN': AMB, 'XGBoost': GRN}
 for name, r in results.items():
     c = cols_roc.get(name, ACC)
     ax.fill_between(r['fpr'], r['tpr'], alpha=.06, color=c)
